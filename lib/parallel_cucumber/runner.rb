@@ -6,24 +6,21 @@ module ParallelCucumber
       @options = options
     end
 
-    def run_tests(process_number, cucumber_args)
-      cmd = command_for_test(process_number, cucumber_args)
+    def run_tests(process_number, scenarios)
+      cmd = command_for_test(scenarios)
       execute_command_for_process(process_number, cmd)
     end
 
     private
 
-    def command_for_test(process_number, cucumber_args)
-      thread_delay = @options[:thread_delay]
+    def command_for_test(scenarios)
       cucumber_options = @options[:cucumber_options]
       setup_script = @options[:setup_script]
       teardown_script = @options[:teardown_script]
 
-      delay_cmd = thread_delay > 0 ? "sleep #{thread_delay * process_number}" : nil
+      cucumber_cmd = ['cucumber', cucumber_options, *scenarios].compact.join(' ')
 
-      cucumber_cmd = ['cucumber', cucumber_options, *cucumber_args].compact.join(' ')
-
-      cmd = [delay_cmd, setup_script, cucumber_cmd].compact.join(' && ')
+      cmd = [setup_script, cucumber_cmd].compact.join(' && ')
       teardown_script.nil? ? cmd : "#{cmd}; RET=$?; #{teardown_script}; exit ${RET}"
     end
 
@@ -66,7 +63,7 @@ module ParallelCucumber
 
       {
         TEST: 1,
-        TEST_PROCESS_NUMBER: process_number
+        TEST_PROCESS_NUMBER: "#{Time.now.strftime('%y%m%d-%H%M%S')}-#{process_number}"  # Sorts nicely numerically.
       }.merge(env).map { |k, v| [k.to_s, v.to_s] }.to_h
     end
 

@@ -8,23 +8,17 @@ require 'yaml'
 module ParallelCucumber
   class Grouper
     class << self
-      def feature_groups(options, group_size)
-        scenario_groups(group_size, options)
-      end
-
-      private
-
-      def scenario_groups(group_size, options)
+      def all_runnable_scenarios(options)
         distribution_data = generate_dry_run_report(options)
-        all_runnable_scenarios = distribution_data.map do |feature|
+        distribution_data.map do |feature|
           next if feature['elements'].nil?
           feature['elements'].map do |scenario|
             "#{feature['uri']}:#{scenario['line']}" if ['Scenario', 'Scenario Outline'].include?(scenario['keyword'])
           end
         end.flatten.compact
-
-        group_creator(group_size, all_runnable_scenarios)
       end
+
+      private
 
       def generate_dry_run_report(options)
         cucumber_options = options[:cucumber_options]
@@ -79,16 +73,6 @@ module ParallelCucumber
             option
           end
         end.compact.join(' ')
-      end
-
-      def group_creator(groups_count, tasks)
-        groups = Array.new(groups_count) { [] }
-
-        tasks.each do |task|
-          group = groups.min_by(&:size)
-          group.push(task)
-        end
-        groups.reject(&:empty?).map(&:compact)
       end
     end # class
   end # Grouper
